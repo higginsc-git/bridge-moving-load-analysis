@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge Moving Load Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1117;--card-bg:#161b22;--card-bg2:#1c2333;--border:#2a3040;--text:#e0e4ea;--text-dim:#7a8599;--accent:#4d9aff;--accent2:#38bdf8;--highlight:#f97316;--green:#34d399;--red:#ef4444;--purple:#a78bfa;--input-bg:#1a2030;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+.app{max-width:1140px;margin:0 auto;padding:24px 16px 60px;}
+.header{display:flex;align-items:baseline;gap:12px;margin-bottom:8px;}
+.header h1{font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-0.5px;}
+.header .sub{font-size:12px;color:var(--text-dim);font-family:'DM Mono',monospace;}
+.section{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+.section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:14px;font-family:'DM Mono',monospace;}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+.field input{background:var(--input-bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 10px;font-size:13px;font-family:'DM Mono',monospace;width:100%;outline:none;transition:border-color .2s;}
+.field input:focus{border-color:var(--accent);}
+.field-wide{flex:1;min-width:180px;}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;}
+.btn:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:6px;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-run{background:linear-gradient(135deg,var(--accent),var(--accent2));padding:12px 36px;font-size:14px;letter-spacing:.5px;}
+.truck-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.chip{font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-family:'DM Mono',monospace;transition:all .15s;user-select:none;}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.chip:not(.active):hover{border-color:var(--text-dim);}
+.tabs{display:flex;gap:2px;margin-bottom:16px;background:var(--input-bg);border-radius:8px;padding:3px;flex-wrap:wrap;}
+.tab{padding:8px 16px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--text-dim);font-family:'DM Sans',sans-serif;transition:all .15s;border:none;background:none;white-space:nowrap;}
+.tab.active{background:var(--accent);color:#fff;}
+.tab:not(.active):hover{color:var(--text);}
+.tab-hl93{padding:6px 12px;font-size:11px;}
+.tab-hl93.active{background:var(--highlight);color:#fff;}
+table{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:11px;}
+th{text-align:left;padding:7px 8px;border-bottom:2px solid var(--border);color:var(--text-dim);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+td{padding:6px 8px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+.val-pos{color:var(--green);}.val-neg{color:var(--red);}.val-gov{font-weight:700;}
+.point-select{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;}
+.pt-btn{font-size:11px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:'DM Mono',monospace;transition:all .15s;}
+.pt-btn.active{background:var(--highlight);border-color:var(--highlight);color:#fff;}
+.custom-form{background:var(--card-bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;}
+.note{font-size:11px;color:var(--text-dim);font-style:italic;margin-top:6px;}
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.results-grid{grid-template-columns:1fr;}.row{flex-direction:column;}}
+.stat-card{background:var(--card-bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;}
+.stat-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;font-family:'DM Mono',monospace;margin-bottom:4px;}
+.stat-val{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text-dim);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-swatch{width:14px;height:3px;border-radius:1px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+/*
+ * Bridge Moving Load Analysis
+ * 
+ * Developed by Christopher Higgins, PhD, PE
+ * School of Civil and Construction Engineering
+ * Oregon State University, 2025
+ * 
+ * Based on original Fortran analysis program by C. Higgins (2004)
+ * 
+ * DISCLAIMER: This software is provided as-is for educational and reference
+ * purposes. Engineers should independently verify all results before using
+ * them for design. The author assumes no liability for the use of this
+ * software in engineering practice.
+ * 
+ * Released under the MIT License.
+ */
+const {useState,useCallback,useMemo}=React;
+
+function computeSpanMoments(wt,a,lspan,numsp,Z,spanTypes){
+  const m=new Float64Array(2*numsp),type=spanTypes[lspan],idx=lspan*2;
+  if(type==="leftCant"){m[idx]=0;m[idx+1]=wt*(Z[lspan]-a);if(idx+2<2*numsp)m[idx+2]=-m[idx+1];}
+  else if(type==="rightCant"){m[idx]=-wt*a;m[idx+1]=0;if(idx-1>=0)m[idx-1]=wt*a;}
+  return m;
+}
+function computeShears(m,wt,a,lspan,numsp,Z){
+  const v=new Float64Array(2*numsp);
+  for(let j=0;j<numsp;j++){const k=j*2;v[k]=(-m[k]-m[k+1])/Z[j];v[k+1]=(m[k]+m[k+1])/Z[j];}
+  const jl=lspan*2;v[jl]+=(wt*(Z[lspan]-a))/Z[lspan];v[jl+1]+=(wt*a)/Z[lspan];return v;
+}
+function computeInteriorMV(wt,a,lspan,numsp,m,v,xloc,npt){
+  const mpt=[],vpt=[];
+  for(let l=0;l<numsp;l++){const kid=l*2,kk=npt[l];mpt[l]=new Float64Array(kk);vpt[l]=new Float64Array(kk);
+    for(let f=0;f<kk;f++){mpt[l][f]=-m[kid]-v[kid]*xloc[l][f];vpt[l][f]=-v[kid];}}
+  for(let km=0;km<npt[lspan];km++){if(a<xloc[lspan][km]){mpt[lspan][km]+=wt*(xloc[lspan][km]-a);vpt[lspan][km]+=wt;}}
+  return{mpt,vpt};
+}
+function invertSigns(numsp,mtot,vtot,mpttot,vpttot,npt){
+  const hm=new Float64Array(2*numsp),hv=new Float64Array(2*numsp);
+  for(let i=0;i<numsp;i++){const t=i*2;hm[t]=mtot[t];hv[t]=vtot[t];hm[t+1]=-mtot[t+1];hv[t+1]=-vtot[t+1];}
+  const hmpt=[],hvpt=[];
+  for(let j=0;j<numsp;j++){hmpt[j]=new Float64Array(npt[j]);hvpt[j]=new Float64Array(npt[j]);
+    for(let m=0;m<npt[j];m++){hmpt[j][m]=-mpttot[j][m];hvpt[j][m]=-vpttot[j][m];}}
+  return{hm,hv,hmpt,hvpt};
+}
+function runMovingLoadAnalysis(beamConfig,trucks){
+  const{spans,analysisPoints:xloc}=beamConfig;
+  const numsp=spans.length,Z=spans.map(s=>s.length),spanTypes=spans.map(s=>s.type);
+  const npt=xloc.map(a=>a.length),totalLength=Z.reduce((a,b)=>a+b,0),results=[];
+  for(const truck of trucks){
+    const{axleWeights,axleSpacings,name}=truck,naxle=axleWeights.length;
+    let ltruck=0;for(let i=0;i<naxle-1;i++)ltruck+=axleSpacings[i];
+    const numInc=1000,incSize=(totalLength+ltruck)/(numInc-1);
+    const envelope=[],responseData=[];
+    for(let l=0;l<numsp;l++){envelope[l]=[];responseData[l]=[];
+      for(let f=0;f<npt[l];f++){envelope[l][f]={mptmax:0,vmptmax:0,vptmax:0,mvptmax:0,mptmin:0,vmptmin:0,vptmin:0,mvptmin:0};
+        responseData[l][f]={zeta:[],moment:[],shear:[]};}}
+    for(let i=0;i<numInc;i++){
+      const zeta=i*incSize,mtot=new Float64Array(2*numsp),vtot=new Float64Array(2*numsp);
+      const mpttot=[],vpttot=[];
+      for(let l=0;l<numsp;l++){mpttot[l]=new Float64Array(npt[l]);vpttot[l]=new Float64Array(npt[l]);}
+      const xs=new Float64Array(naxle);xs[0]=zeta;
+      for(let j=1;j<naxle;j++)xs[j]=xs[j-1]-axleSpacings[j-1];
+      for(let jl=0;jl<naxle;jl++){
+        let cumLen=0,foundSpan=-1;
+        for(let sp=0;sp<numsp;sp++){if(xs[jl]>=cumLen&&xs[jl]<=cumLen+Z[sp]){foundSpan=sp;break;}cumLen+=Z[sp];}
+        if(foundSpan<0)continue;
+        cumLen=0;for(let sp=0;sp<foundSpan;sp++)cumLen+=Z[sp];
+        const a=xs[jl]-cumLen,wt=axleWeights[jl];
+        const m=computeSpanMoments(wt,a,foundSpan,numsp,Z,spanTypes);
+        const v=computeShears(m,wt,a,foundSpan,numsp,Z);
+        const{mpt,vpt}=computeInteriorMV(wt,a,foundSpan,numsp,m,v,xloc,npt);
+        for(let l=0;l<numsp;l++)for(let k=0;k<npt[l];k++){mpttot[l][k]+=mpt[l][k];vpttot[l][k]+=vpt[l][k];}
+        for(let km=0;km<2*numsp;km++){mtot[km]+=m[km];vtot[km]+=v[km];}
+      }
+      const{hmpt,hvpt}=invertSigns(numsp,mtot,vtot,mpttot,vpttot,npt);
+      for(let l=0;l<numsp;l++)for(let f=0;f<npt[l];f++){
+        responseData[l][f].zeta.push(zeta);responseData[l][f].moment.push(hmpt[l][f]);responseData[l][f].shear.push(hvpt[l][f]);}
+      for(let l=0;l<numsp;l++)for(let k=0;k<npt[l];k++){
+        const e=envelope[l][k];
+        if(hmpt[l][k]>e.mptmax){e.mptmax=hmpt[l][k];e.vmptmax=hvpt[l][k];}
+        if(hvpt[l][k]>e.vptmax){e.vptmax=hvpt[l][k];e.mvptmax=hmpt[l][k];}
+        if(hmpt[l][k]<e.mptmin){e.mptmin=hmpt[l][k];e.vmptmin=hvpt[l][k];}
+        if(hvpt[l][k]<e.vptmin){e.vptmin=hvpt[l][k];e.mvptmin=hmpt[l][k];}
+      }
+    }
+    results.push({name,ltruck,envelope,responseData,incSize});
+  }
+  return results;
+}
+function integrateInfluenceLine(ilData,w){
+  const n=ilData.zeta.length;
+  if(n<2)return{totalM:0,totalV:0,posM:0,negM:0,posV:0,negV:0};
+  const del=ilData.zeta[1]-ilData.zeta[0],AV=new Float64Array(n),AM=new Float64Array(n);
+  for(let i=1;i<n;i++){AV[i]=AV[i-1]+.5*del*(ilData.shear[i]+ilData.shear[i-1]);AM[i]=AM[i-1]+.5*del*(ilData.moment[i]+ilData.moment[i-1]);}
+  const areas=(ord,cum)=>{const cr=[0];for(let i=1;i<n;i++)if((ord[i]>0&&ord[i-1]<=0)||(ord[i]<0&&ord[i-1]>=0))cr.push(i-1);cr.push(n-1);
+    let p=0,ng=0;for(let k=1;k<cr.length;k++){const s=cum[cr[k]]-cum[cr[k-1]];if(s>0)p+=s;else ng+=s;}return{p,ng};};
+  const va=areas(ilData.shear,AV),ma=areas(ilData.moment,AM);
+  return{totalM:AM[n-1]*w,totalV:AV[n-1]*w,posM:ma.p*w,negM:ma.ng*w,posV:va.p*w,negV:va.ng*w};
+}
+
+const PRESET_TRUCKS={
+  HL93_Design:{name:"HL-93 Design Truck",axleWeights:[8,32,32],axleSpacings:[14,14]},
+  HL93_Tandem:{name:"HL-93 Tandem",axleWeights:[25,25],axleSpacings:[4]},
+  HL93_Fatigue:{name:"HL-93 Fatigue Truck",axleWeights:[8,32,32],axleSpacings:[14,30],fatigue:true},
+  HS20:{name:"HS-20",axleWeights:[8,32,32],axleSpacings:[14,14]},
+  Type3:{name:"Type 3",axleWeights:[16,17,17],axleSpacings:[15,4]},
+  Type3S2:{name:"Type 3S2",axleWeights:[10,15.5,15.5,15.5,15.5],axleSpacings:[11,4,22,4]},
+  Type3_3:{name:"Type 3-3",axleWeights:[12,12,12,16,14,14],axleSpacings:[15,4,15,16,4]},
+  SU4:{name:"SU4",axleWeights:[8,14,14,14],axleSpacings:[10,4,4]},
+  UnitLoad:{name:"Unit Load (1 kip)",axleWeights:[1],axleSpacings:[]},
+};
+
+function Chart({data,xKey,series,title,height=220,xLabel,yLabel,showZero=true,showLegend=true}){
+  if(!data||data.length===0)return null;
+  const W=640,H=height,pad={t:28,r:20,b:40,l:70},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+  const xVals=data.map(d=>d[xKey]),xMin=Math.min(...xVals),xMax=Math.max(...xVals);
+  let yMin=Infinity,yMax=-Infinity;
+  for(const s of series)for(const d of data){const v=d[s.key];if(v!=null){if(v<yMin)yMin=v;if(v>yMax)yMax=v;}}
+  if(yMin===yMax){yMin-=1;yMax+=1;}const yPad=(yMax-yMin)*.08;yMin-=yPad;yMax+=yPad;
+  const sx=v=>pad.l+((v-xMin)/(xMax-xMin||1))*pw,sy=v=>pad.t+ph-((v-yMin)/(yMax-yMin||1))*ph;
+  const step=Math.max(1,Math.floor(data.length/350)),sampled=data.filter((_,i)=>i%step===0||i===data.length-1);
+  const fillArea=series.length>=2&&series[0].fill;
+  return(
+    <div style={{marginBottom:16}}>
+      {title&&<div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:4,fontFamily:"'DM Sans',sans-serif"}}>{title}</div>}
+      {showLegend&&series.length>1&&<div className="legend-row">{series.map((s,i)=><div key={i} className="legend-item"><div className="legend-swatch" style={{background:s.color,height:s.dash?1:3,borderTop:s.dash?`2px dashed ${s.color}`:'none'}}/>{s.label||s.key}</div>)}</div>}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",background:"var(--card-bg)",borderRadius:6,border:"1px solid var(--border)"}}>
+        {showZero&&yMin<0&&yMax>0&&<line x1={pad.l} x2={W-pad.r} y1={sy(0)} y2={sy(0)} stroke="var(--text-dim)" strokeWidth=".5" strokeDasharray="4 3"/>}
+        <line x1={pad.l} x2={W-pad.r} y1={H-pad.b} y2={H-pad.b} stroke="var(--border)" strokeWidth="1"/>
+        <line x1={pad.l} x2={pad.l} y1={pad.t} y2={H-pad.b} stroke="var(--border)" strokeWidth="1"/>
+        {[0,.25,.5,.75,1].map(f=>{const xv=xMin+f*(xMax-xMin);return<text key={`x${f}`} x={sx(xv)} y={H-pad.b+16} fontSize="10" fill="var(--text-dim)" textAnchor="middle" fontFamily="'DM Mono',monospace">{xv.toFixed(1)}</text>})}
+        {[0,.25,.5,.75,1].map(f=>{const yv=yMin+f*(yMax-yMin);return<text key={`y${f}`} x={pad.l-6} y={sy(yv)+3} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="'DM Mono',monospace">{yv.toFixed(1)}</text>})}
+        {xLabel&&<text x={pad.l+pw/2} y={H-4} fontSize="10" fill="var(--text-dim)" textAnchor="middle" fontFamily="'DM Sans',sans-serif">{xLabel}</text>}
+        {yLabel&&<text x={14} y={pad.t+ph/2} fontSize="10" fill="var(--text-dim)" textAnchor="middle" transform={`rotate(-90,14,${pad.t+ph/2})`} fontFamily="'DM Sans',sans-serif">{yLabel}</text>}
+        {fillArea&&(()=>{const s1=series[0],s2=series[1];
+          const pts1=sampled.map(d=>`${sx(d[xKey])},${sy(d[s1.key])}`);
+          const pts2=[...sampled].reverse().map(d=>`${sx(d[xKey])},${sy(d[s2.key])}`);
+          return<polygon points={[...pts1,...pts2].join(" ")} fill={s1.fillColor||"rgba(77,154,255,0.1)"} stroke="none"/>;})()}
+        {series.map((s,si)=>{const pts=sampled.filter(d=>d[s.key]!=null).map(d=>`${sx(d[xKey])},${sy(d[s.key])}`).join(" ");
+          return<polyline key={si} points={pts} fill="none" stroke={s.color} strokeWidth={s.width||1.5} strokeLinejoin="round" strokeDasharray={s.dash||"none"}/>;
+        })}
+      </svg>
+    </div>);
+}
+
+function BeamDiagram({leftCant,mainSpan,rightCant,analysisPoints}){
+  const total=leftCant+mainSpan+rightCant;if(total<=0)return null;
+  const W=640,H=80,pad=40,bw=W-2*pad,sx=x=>pad+(x/total)*bw,by=36;
+  return(<svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto"}}>
+    <line x1={sx(0)} x2={sx(total)} y1={by} y2={by} stroke="var(--accent)" strokeWidth="4" strokeLinecap="round"/>
+    {leftCant>0?<React.Fragment><polygon points={`${sx(leftCant)},${by+4} ${sx(leftCant)-8},${by+18} ${sx(leftCant)+8},${by+18}`} fill="var(--text)"/>
+      <text x={sx(leftCant/2)} y={by-10} fontSize="10" fill="var(--text-dim)" textAnchor="middle" fontFamily="'DM Mono',monospace">{leftCant}'</text></React.Fragment>
+      :<polygon points={`${sx(0)},${by+4} ${sx(0)-8},${by+18} ${sx(0)+8},${by+18}`} fill="var(--text)"/>}
+    {rightCant>0?<React.Fragment><polygon points={`${sx(leftCant+mainSpan)},${by+4} ${sx(leftCant+mainSpan)-8},${by+18} ${sx(leftCant+mainSpan)+8},${by+18}`} fill="var(--text)"/>
+      <text x={sx(leftCant+mainSpan+rightCant/2)} y={by-10} fontSize="10" fill="var(--text-dim)" textAnchor="middle" fontFamily="'DM Mono',monospace">{rightCant}'</text></React.Fragment>
+      :<polygon points={`${sx(total)},${by+4} ${sx(total)-8},${by+18} ${sx(total)+8},${by+18}`} fill="var(--text)"/>}
+    <text x={sx(leftCant+mainSpan/2)} y={by-10} fontSize="11" fill="var(--accent)" textAnchor="middle" fontWeight="600" fontFamily="'DM Mono',monospace">{mainSpan}'</text>
+    <line x1={sx(0)-10} x2={sx(total)+10} y1={by+20} y2={by+20} stroke="var(--border)" strokeWidth=".5"/>
+    {analysisPoints&&analysisPoints.map((pts,si)=>{let off=0;if(si===1)off=leftCant;if(si===2)off=leftCant+mainSpan;
+      return pts.map((p,pi)=><circle key={`${si}-${pi}`} cx={sx(off+p)} cy={by} r="3" fill="var(--highlight)" stroke="var(--card-bg)" strokeWidth="1.5"/>);})}
+  </svg>);
+}
+
+function App(){
+  const[leftCant,setLeftCant]=useState(0);
+  const[mainSpan,setMainSpan]=useState(60);
+  const[rightCant,setRightCant]=useState(0);
+  const[pointsText,setPointsText]=useState(["","15, 30, 45",""]);
+  const[customTrucks,setCustomTrucks]=useState([]);
+  const[activeTrucks,setActiveTrucks]=useState(["HL93_Design"]);
+  const[showCustom,setShowCustom]=useState(false);
+  const[customName,setCustomName]=useState("");
+  const[customWeights,setCustomWeights]=useState("");
+  const[customSpacings,setCustomSpacings]=useState("");
+  const[wLane,setWLane]=useState(0.64);
+  const[wDead,setWDead]=useState(0);
+  const[dfM,setDfM]=useState(1.0);
+  const[dfV,setDfV]=useState(1.0);
+  const[imStrength,setImStrength]=useState(1.33);
+  const[imFatigue,setImFatigue]=useState(1.15);
+  const[truckResults,setTruckResults]=useState(null);
+  const[unitILResults,setUnitILResults]=useState(null);
+  const[hl93Envelope,setHl93Envelope]=useState(null);
+  const[laneData,setLaneData]=useState(null);
+  const[mainTab,setMainTab]=useState("hl93");
+  const[selectedPt,setSelectedPt]=useState({span:0,pt:0});
+  const[hl93LocIdx,setHl93LocIdx]=useState(0);
+  const[hl93SubTab,setHl93SubTab]=useState("moment");
+  const[respTruckIdx,setRespTruckIdx]=useState(0);
+
+  const parsePoints=useCallback(texts=>texts.map(t=>{if(!t.trim())return[];return t.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)&&n>0);}),[]);
+
+  const buildSpans=useCallback(()=>{
+    const spans=[],pts=parsePoints(pointsText),ap=[];
+    if(leftCant>0){spans.push({length:leftCant,label:"L.Cant",type:"leftCant"});ap.push(pts[0]||[]);}
+    spans.push({length:mainSpan,label:"Span",type:"main"});ap.push(pts[1]||[]);
+    if(rightCant>0){spans.push({length:rightCant,label:"R.Cant",type:"rightCant"});ap.push(pts[2]||[]);}
+    return{spans,analysisPoints:ap};
+  },[leftCant,mainSpan,rightCant,pointsText,parsePoints]);
+
+  const buildTrucks=useCallback(()=>{
+    const trucks=[];
+    for(const id of activeTrucks){if(PRESET_TRUCKS[id])trucks.push({...PRESET_TRUCKS[id]});
+      else{const ct=customTrucks.find(c=>c.id===id);if(ct)trucks.push({name:ct.name,axleWeights:[...ct.axleWeights],axleSpacings:[...ct.axleSpacings]});}}
+    return trucks;
+  },[activeTrucks,customTrucks]);
+
+  const buildDenseConfig=useCallback(()=>{
+    const{spans}=buildSpans();
+    const EPS=0.0001;
+    const denseAP=spans.map(s=>{const n=Math.floor(s.length/2);const pts=[EPS];for(let i=1;i<n;i++)pts.push(i*2);if(n*2<s.length)pts.push(s.length-EPS);else pts.push(s.length-EPS);return pts;});
+    return{spans,analysisPoints:denseAP};
+  },[buildSpans]);
+
+  const runAnalysis=useCallback(()=>{
+    const config=buildSpans();
+    const trucks=buildTrucks();if(trucks.length===0)return;
+    // Build truck results, handling HL-93 Design Truck specially (sweep 14'-30')
+    const res=[];
+    const otherTrucks=trucks.filter(t=>t.name!=="HL-93 Design Truck");
+    const hasHL93=trucks.some(t=>t.name==="HL-93 Design Truck");
+    // Run each non-HL93 truck forward and reverse, combine envelopes
+    for(const truck of otherTrucks){
+      const nax=truck.axleWeights.length;
+      const fwd={name:truck.name,axleWeights:truck.axleWeights,axleSpacings:truck.axleSpacings};
+      const rev={name:truck.name+"R",axleWeights:[...truck.axleWeights].reverse(),axleSpacings:[...truck.axleSpacings].reverse()};
+      const configs=nax>1?[{t:fwd,dir:"F"},{t:rev,dir:"R"}]:[{t:fwd,dir:"F"}];// single axle: no reverse
+      const ap=config.analysisPoints,ns=ap.length;
+      // Init combined envelope
+      const env=[];
+      for(let s=0;s<ns;s++){env[s]=[];for(let p=0;p<ap[s].length;p++)
+        env[s][p]={mptmax:-Infinity,vmptmax:0,mptmin:Infinity,vmptmin:0,
+          vptmax:-Infinity,mvptmax:0,vptmin:Infinity,mvptmin:0,
+          dirMaxM:"F",dirMinM:"F",dirMaxV:"F",dirMinV:"F"};}
+      const runsByDir={};
+      for(const c of configs){
+        const r=runMovingLoadAnalysis(config,[c.t]);
+        runsByDir[c.dir]=r[0];
+        for(let s=0;s<ns;s++)for(let p=0;p<ap[s].length;p++){
+          const e=r[0].envelope[s][p],b=env[s][p];
+          if(e.mptmax>b.mptmax){b.mptmax=e.mptmax;b.vmptmax=e.vmptmax;b.dirMaxM=c.dir;}
+          if(e.mptmin<b.mptmin){b.mptmin=e.mptmin;b.vmptmin=e.vmptmin;b.dirMinM=c.dir;}
+          if(e.vptmax>b.vptmax){b.vptmax=e.vptmax;b.mvptmax=e.mvptmax;b.dirMaxV=c.dir;}
+          if(e.vptmin<b.vptmin){b.vptmin=e.vptmin;b.mvptmin=e.mvptmin;b.dirMinV=c.dir;}
+        }
+      }
+      // Build per-point response data from governing maxM direction
+      const respByPt=[];
+      for(let s=0;s<ns;s++){respByPt[s]=[];for(let p=0;p<ap[s].length;p++){
+        const d=env[s][p].dirMaxM;
+        respByPt[s][p]={dir:d,data:runsByDir[d].responseData[s][p]};
+      }}
+      // Also store all direction runs so user can view either
+      res.push({name:truck.name,ltruck:0,envelope:env,responseData:null,hasFwdRev:nax>1,fatigue:!!truck.fatigue,respByPt,runsByDir});
+    }
+    if(hasHL93){
+      const sweptEnv=sweepHL93Truck(config);
+      const ap=config.analysisPoints;
+      const respByPt=[];
+      // Collect unique governing spacing+direction combos to minimize re-runs
+      const configsNeeded=new Set();
+      for(let s=0;s<ap.length;s++)for(let p=0;p<ap[s].length;p++){
+        const b=sweptEnv[s][p];configsNeeded.add(`${b.spMaxM}-${b.dirMaxM}`);}
+      const respCache={};
+      for(const key of configsNeeded){
+        const[sp,dir]=key.split("-");const spn=+sp;
+        const wts=dir==="F"?[8,32,32]:[32,32,8];
+        const sps=dir==="F"?[14,spn]:[spn,14];
+        const r=runMovingLoadAnalysis(config,[{name:key,axleWeights:wts,axleSpacings:sps}]);
+        respCache[key]=r[0].responseData;
+      }
+      for(let s=0;s<ap.length;s++){respByPt[s]=[];for(let p=0;p<ap[s].length;p++){
+        const b=sweptEnv[s][p];const key=`${b.spMaxM}-${b.dirMaxM}`;
+        respByPt[s][p]={spacing:b.spMaxM,dir:b.dirMaxM,data:respCache[key][s][p]};
+      }}
+      res.unshift({name:"HL-93 Design Truck",ltruck:0,envelope:sweptEnv,responseData:null,isHL93Sweep:true,respByPt});
+    }
+    setTruckResults(res);
+    const unitTruck=[{name:"Unit Load",axleWeights:[1],axleSpacings:[]}];
+    const unitRes=runMovingLoadAnalysis(config,unitTruck);setUnitILResults(unitRes[0]);
+    const ap=config.analysisPoints,ld=[];
+    for(let s=0;s<ap.length;s++){ld[s]=[];for(let p=0;p<ap[s].length;p++){
+      const il=unitRes[0].responseData[s][p];
+      const dr=integrateInfluenceLine(il,wDead),lr=integrateInfluenceLine(il,wLane);
+      ld[s][p]={deadM:dr.totalM,deadV:dr.totalV,lanePosM:lr.posM*dfM,laneNegM:lr.negM*dfM,lanePosV:lr.posV*dfV,laneNegV:lr.negV*dfV};
+    }}setLaneData(ld);
+
+    // HL-93 Design Truck: sweep rear axle spacing 14' to 30', both directions
+    // Forward (F): steer leads [8,32,32] spacings [14,sp]
+    // Reverse (R): rear leads [32,32,8] spacings [sp,14]
+    function sweepHL93Truck(cfg){
+      const spacings=[];for(let sp=14;sp<=30;sp++)spacings.push(sp);
+      const ap=cfg.analysisPoints,ns=ap.length;
+      const best=[];
+      for(let s=0;s<ns;s++){best[s]=[];for(let p=0;p<ap[s].length;p++)
+        best[s][p]={mptmax:-Infinity,vmptmax:0,mptmin:Infinity,vmptmin:0,
+          vptmax:-Infinity,mvptmax:0,vptmin:Infinity,mvptmin:0,
+          spMaxM:14,spMinM:14,spMaxV:14,spMinV:14,
+          dirMaxM:"F",dirMinM:"F",dirMaxV:"F",dirMinV:"F"};}
+      for(const sp of spacings){
+        const configs=[
+          {dir:"F",axleWeights:[8,32,32],axleSpacings:[14,sp]},
+          {dir:"R",axleWeights:[32,32,8],axleSpacings:[sp,14]},
+        ];
+        for(const c of configs){
+          const truck=[{name:`T${sp}${c.dir}`,axleWeights:c.axleWeights,axleSpacings:c.axleSpacings}];
+          const res=runMovingLoadAnalysis(cfg,truck);
+          for(let s=0;s<ns;s++)for(let p=0;p<ap[s].length;p++){
+            const e=res[0].envelope[s][p],b=best[s][p];
+            if(e.mptmax>b.mptmax){b.mptmax=e.mptmax;b.vmptmax=e.vmptmax;b.spMaxM=sp;b.dirMaxM=c.dir;}
+            if(e.mptmin<b.mptmin){b.mptmin=e.mptmin;b.vmptmin=e.vmptmin;b.spMinM=sp;b.dirMinM=c.dir;}
+            if(e.vptmax>b.vptmax){b.vptmax=e.vptmax;b.mvptmax=e.mvptmax;b.spMaxV=sp;b.dirMaxV=c.dir;}
+            if(e.vptmin<b.vptmin){b.vptmin=e.vptmin;b.mvptmin=e.mvptmin;b.spMinV=sp;b.dirMinV=c.dir;}
+          }
+        }
+      }
+      return best;
+    }
+
+    // HL-93 at dense points for envelope plots
+    const denseConfig=buildDenseConfig();
+    const truckDenseBest=sweepHL93Truck(denseConfig);
+    const tandemDense=runMovingLoadAnalysis(denseConfig,[{...PRESET_TRUCKS.HL93_Tandem}]);
+    const unitDense=runMovingLoadAnalysis(denseConfig,unitTruck);
+    const denseAP=denseConfig.analysisPoints,densePoints=[];
+    for(let s=0;s<denseAP.length;s++)for(let p=0;p<denseAP[s].length;p++){
+      const te=truckDenseBest[s][p],ne=tandemDense[0].envelope[s][p];
+      const il=unitDense[0].responseData[s][p];
+      const lr=integrateInfluenceLine(il,wLane),dr=integrateInfluenceLine(il,wDead);
+      let off=0;for(let k=0;k<s;k++)off+=denseConfig.spans[k].length;
+      const lPM=lr.posM*dfM,lNM=lr.negM*dfM,lPV=lr.posV*dfV,lNV=lr.negV*dfV;
+      const govMaxM=Math.max(te.mptmax,ne.mptmax),govMinM=Math.min(te.mptmin,ne.mptmin);
+      const govMaxV=Math.max(te.vptmax,ne.vptmax),govMinV=Math.min(te.vptmin,ne.vptmin);
+      densePoints.push({x:off+denseAP[s][p],
+        hl93MaxM:govMaxM*imStrength+lPM,hl93MinM:govMinM*imStrength+lNM,
+        hl93MaxV:govMaxV*imStrength+lPV,hl93MinV:govMinV*imStrength+lNV,
+        deadM:dr.totalM,deadV:dr.totalV,
+        govMaxM,govMinM,govMaxV,govMinV,
+        govLblMaxM:te.mptmax>=ne.mptmax?`Truck-${te.spMaxM}'-${te.dirMaxM}`:"Tandem",
+        govLblMinM:te.mptmin<=ne.mptmin?`Truck-${te.spMinM}'-${te.dirMinM}`:"Tandem",
+        govLblMaxV:te.vptmax>=ne.vptmax?`Truck-${te.spMaxV}'-${te.dirMaxV}`:"Tandem",
+        govLblMinV:te.vptmin<=ne.vptmin?`Truck-${te.spMinV}'-${te.dirMinV}`:"Tandem",
+        lPM,lNM,lPV,lNV,
+      });
+    }
+    // HL-93 at user points for table
+    const truckUserBest=sweepHL93Truck(config);
+    const tandemUser=runMovingLoadAnalysis(config,[{...PRESET_TRUCKS.HL93_Tandem}]);
+    const hl93User=[];
+    for(let s=0;s<ap.length;s++){hl93User[s]=[];for(let p=0;p<ap[s].length;p++){
+      const te=truckUserBest[s][p],ne=tandemUser[0].envelope[s][p],lane=ld[s][p];
+      const gMaxM=Math.max(te.mptmax,ne.mptmax),gMinM=Math.min(te.mptmin,ne.mptmin);
+      const gMaxV=Math.max(te.vptmax,ne.vptmax),gMinV=Math.min(te.vptmin,ne.vptmin);
+      hl93User[s][p]={
+        truckMaxM:te.mptmax,truckMinM:te.mptmin,truckMaxV:te.vptmax,truckMinV:te.vptmin,
+        truckVatMaxM:te.vmptmax,truckVatMinM:te.vmptmin,truckMatMaxV:te.mvptmax,truckMatMinV:te.mvptmin,
+        truckSpMaxM:te.spMaxM,truckSpMinM:te.spMinM,truckSpMaxV:te.spMaxV,truckSpMinV:te.spMinV,
+        truckDirMaxM:te.dirMaxM,truckDirMinM:te.dirMinM,truckDirMaxV:te.dirMaxV,truckDirMinV:te.dirMinV,
+        tandemMaxM:ne.mptmax,tandemMinM:ne.mptmin,tandemMaxV:ne.vptmax,tandemMinV:ne.vptmin,
+        tandemVatMaxM:ne.vmptmax,tandemVatMinM:ne.vmptmin,tandemMatMaxV:ne.mvptmax,tandemMatMinV:ne.mvptmin,
+        lanePosM:lane.lanePosM,laneNegM:lane.laneNegM,lanePosV:lane.lanePosV,laneNegV:lane.laneNegV,
+        deadM:lane.deadM,deadV:lane.deadV,
+        govMaxM:gMaxM,govMinM:gMinM,govMaxV:gMaxV,govMinV:gMinV,
+        imStrength,
+        hl93MaxM:gMaxM*imStrength+lane.lanePosM,hl93MinM:gMinM*imStrength+lane.laneNegM,
+        hl93MaxV:gMaxV*imStrength+lane.lanePosV,hl93MinV:gMinV*imStrength+lane.laneNegV,
+        govLblMaxM:te.mptmax>=ne.mptmax?`Truck-${te.spMaxM}'-${te.dirMaxM}`:"Tandem",
+        govLblMinM:te.mptmin<=ne.mptmin?`Truck-${te.spMinM}'-${te.dirMinM}`:"Tandem",
+        govLblMaxV:te.vptmax>=ne.vptmax?`Truck-${te.spMaxV}'-${te.dirMaxV}`:"Tandem",
+        govLblMinV:te.vptmin<=ne.vptmin?`Truck-${te.spMinV}'-${te.dirMinV}`:"Tandem",
+      };
+    }}
+    setHl93Envelope({dense:densePoints,user:hl93User});
+    setSelectedPt({span:0,pt:0});setHl93LocIdx(0);setRespTruckIdx(0);setMainTab("hl93");
+  },[buildSpans,buildTrucks,buildDenseConfig,wLane,wDead,dfM,dfV,imStrength,imFatigue]);
+
+  const addCustomTruck=()=>{if(!customName.trim())return;
+    const w=customWeights.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
+    const sp=customSpacings.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
+    if(w.length===0)return;const id=`custom_${Date.now()}`;
+    setCustomTrucks(prev=>[...prev,{id,name:customName.trim(),axleWeights:w,axleSpacings:sp}]);
+    setActiveTrucks(prev=>[...prev,id]);setCustomName("");setCustomWeights("");setCustomSpacings("");setShowCustom(false);};
+  const toggleTruck=id=>setActiveTrucks(prev=>prev.includes(id)?prev.filter(t=>t!==id):[...prev,id]);
+
+  const allPoints=useMemo(()=>{const{spans,analysisPoints}=buildSpans();const pts=[];
+    for(let s=0;s<analysisPoints.length;s++)for(let p=0;p<analysisPoints[s].length;p++)
+      pts.push({span:s,pt:p,loc:analysisPoints[s][p],label:`${spans[s].label} @ ${analysisPoints[s][p]}'`});return pts;},[buildSpans]);
+
+  const diagramPoints=useMemo(()=>{const ap=parsePoints(pointsText),out=[];if(leftCant>0)out.push(ap[0]||[]);out.push(ap[1]||[]);if(rightCant>0)out.push(ap[2]||[]);return out;},[leftCant,rightCant,pointsText,parsePoints]);
+
+  const ilChartData=useMemo(()=>{if(!unitILResults)return null;const{span,pt}=selectedPt;
+    const rd=unitILResults.responseData[span]?.[pt];if(!rd)return null;
+    const step=Math.max(1,Math.floor(rd.zeta.length/400));
+    return rd.zeta.map((z,i)=>({x:z,moment:rd.moment[i],shear:rd.shear[i]})).filter((_,i)=>i%step===0);},[unitILResults,selectedPt]);
+
+  const respChartData=useMemo(()=>{if(!truckResults||!truckResults.length)return null;
+    const idx=Math.min(respTruckIdx,truckResults.length-1);
+    const tr=truckResults[idx];const{span,pt}=selectedPt;
+    let rd,spacingLabel=null,dirLabel=null;
+    if(tr.isHL93Sweep&&tr.respByPt){
+      const info=tr.respByPt[span]?.[pt];if(!info)return null;
+      rd=info.data;spacingLabel=info.spacing;dirLabel=info.dir;
+    }else if(tr.respByPt){
+      const info=tr.respByPt[span]?.[pt];if(!info)return null;
+      rd=info.data;dirLabel=info.dir;
+    }else if(tr.responseData){
+      rd=tr.responseData[span]?.[pt];
+    }
+    if(!rd)return null;
+    const step=Math.max(1,Math.floor(rd.zeta.length/400));
+    const data=rd.zeta.map((z,i)=>({x:z,moment:rd.moment[i],shear:rd.shear[i]})).filter((_,i)=>i%step===0);
+    return{data,spacingLabel,dirLabel,truckName:tr.name,hasFwdRev:tr.hasFwdRev||tr.isHL93Sweep};},[truckResults,selectedPt,respTruckIdx]);
+
+  const hl93Loc=useMemo(()=>{if(!hl93Envelope||!allPoints[hl93LocIdx])return null;
+    const{span,pt}=allPoints[hl93LocIdx];return hl93Envelope.user[span]?.[pt]||null;},[hl93Envelope,hl93LocIdx,allPoints]);
+
+  const fv=(v,d=2)=>v!=null?v.toFixed(d):"—";
+  const cls=v=>v>0?"val-pos":v<0?"val-neg":"";
+
+  return(
+    <div className="app">
+      <div className="header"><h1>Bridge Moving Load Analysis</h1><span className="sub">Beam w/ Cantilevers</span></div>
+      <p style={{fontSize:12,color:"var(--text-dim)",marginBottom:20,fontFamily:"'DM Mono',monospace"}}>Simply-supported span with optional cantilevers · HL-93 design envelopes · Influence line integration</p>
+
+      <div className="section"><div className="section-title">Beam Geometry</div>
+        <div className="row" style={{marginBottom:14}}>
+          <div className="field" style={{width:140}}><label>Left Cant. (ft)</label><input type="number" min="0" step=".5" value={leftCant} onChange={e=>setLeftCant(+e.target.value||0)}/></div>
+          <div className="field" style={{width:140}}><label>Main Span (ft)</label><input type="number" min="1" step=".5" value={mainSpan} onChange={e=>setMainSpan(+e.target.value||1)}/></div>
+          <div className="field" style={{width:140}}><label>Right Cant. (ft)</label><input type="number" min="0" step=".5" value={rightCant} onChange={e=>setRightCant(+e.target.value||0)}/></div>
+        </div>
+        <BeamDiagram leftCant={leftCant} mainSpan={mainSpan} rightCant={rightCant} analysisPoints={diagramPoints}/>
+      </div>
+
+      <div className="section"><div className="section-title">Points of Interest</div>
+        <p className="note" style={{marginTop:0,marginBottom:10}}>Comma-separated distances from left end of each segment (ft).</p>
+        <div className="row">
+          {leftCant>0&&<div className="field field-wide"><label>Left Cantilever</label><input value={pointsText[0]} onChange={e=>{const t=[...pointsText];t[0]=e.target.value;setPointsText(t);}} placeholder="e.g. 2, 5"/></div>}
+          <div className="field field-wide"><label>Main Span</label><input value={pointsText[1]} onChange={e=>{const t=[...pointsText];t[1]=e.target.value;setPointsText(t);}} placeholder="e.g. 15, 30, 45"/></div>
+          {rightCant>0&&<div className="field field-wide"><label>Right Cantilever</label><input value={pointsText[2]} onChange={e=>{const t=[...pointsText];t[2]=e.target.value;setPointsText(t);}} placeholder="e.g. 3, 6"/></div>}
+        </div>
+      </div>
+
+      <div className="section"><div className="section-title">Additional Truck Loads</div>
+        <p className="note" style={{marginTop:0,marginBottom:10}}>HL-93 truck &amp; tandem always computed. Select additional trucks here.</p>
+        <div className="truck-chips">
+          {Object.entries(PRESET_TRUCKS).map(([id,t])=><span key={id} className={`chip ${activeTrucks.includes(id)?"active":""}`} onClick={()=>toggleTruck(id)}>{t.name}</span>)}
+          {customTrucks.map(ct=><span key={ct.id} className={`chip ${activeTrucks.includes(ct.id)?"active":""}`} onClick={()=>toggleTruck(ct.id)}>{ct.name}</span>)}
+        </div>
+        <button className="btn btn-sm btn-outline" onClick={()=>setShowCustom(!showCustom)}>{showCustom?"Cancel":"+ Custom Truck"}</button>
+        {showCustom&&<div className="custom-form"><div className="row" style={{marginBottom:8}}>
+          <div className="field" style={{width:160}}><label>Name</label><input value={customName} onChange={e=>setCustomName(e.target.value)} placeholder="My Truck"/></div>
+          <div className="field field-wide"><label>Axle Weights (kips)</label><input value={customWeights} onChange={e=>setCustomWeights(e.target.value)} placeholder="8, 32, 32"/></div>
+          <div className="field field-wide"><label>Axle Spacings (ft)</label><input value={customSpacings} onChange={e=>setCustomSpacings(e.target.value)} placeholder="14, 14"/></div>
+        </div><button className="btn btn-sm" onClick={addCustomTruck}>Add Truck</button></div>}
+      </div>
+
+      <div className="section"><div className="section-title">Distributed Load & Impact Parameters</div>
+        <div className="row" style={{marginBottom:10}}>
+          <div className="field" style={{width:130}}><label>Lane Load (k/ft)</label><input type="number" step=".01" value={wLane} onChange={e=>setWLane(+e.target.value||0)}/></div>
+          <div className="field" style={{width:130}}><label>Dead Load (k/ft)</label><input type="number" step=".01" value={wDead} onChange={e=>setWDead(+e.target.value||0)}/></div>
+          <div className="field" style={{width:120}}><label>DF Moment</label><input type="number" step=".01" value={dfM} onChange={e=>setDfM(+e.target.value||0)}/></div>
+          <div className="field" style={{width:120}}><label>DF Shear</label><input type="number" step=".01" value={dfV} onChange={e=>setDfV(+e.target.value||0)}/></div>
+        </div>
+        <div className="row">
+          <div className="field" style={{width:150}}><label>IM Strength (Truck/Tandem)</label><input type="number" step=".01" value={imStrength} onChange={e=>setImStrength(+e.target.value||0)}/></div>
+          <div className="field" style={{width:150}}><label>IM Fatigue</label><input type="number" step=".01" value={imFatigue} onChange={e=>setImFatigue(+e.target.value||0)}/></div>
+        </div>
+        <p className="note">IM factors apply only in the HL-93 Design Envelope combination (truck/tandem × IM + lane × 1.0). Lane load has no dynamic impact. Fatigue truck uses its own IM. Individual truck envelope results are reported without IM.</p>
+      </div>
+
+      <div style={{display:"flex",justifyContent:"center",marginBottom:24}}><button className="btn btn-run" onClick={runAnalysis}>Run Analysis</button></div>
+
+      {truckResults&&truckResults.length>0&&(
+        <React.Fragment>
+          <div className="section">
+            <div className="section-title">Results</div>
+            <div className="tabs">
+              <button className={`tab ${mainTab==="hl93"?"active":""}`} onClick={()=>setMainTab("hl93")}>HL-93 Design Envelope</button>
+              <button className={`tab ${mainTab==="il"?"active":""}`} onClick={()=>setMainTab("il")}>Influence Lines</button>
+              <button className={`tab ${mainTab==="response"?"active":""}`} onClick={()=>setMainTab("response")}>Response History</button>
+              <button className={`tab ${mainTab==="envelope"?"active":""}`} onClick={()=>setMainTab("envelope")}>Truck Envelopes</button>
+              <button className={`tab ${mainTab==="distributed"?"active":""}`} onClick={()=>setMainTab("distributed")}>Distributed Loads</button>
+            </div>
+
+            {mainTab==="hl93"&&hl93Envelope&&(
+              <React.Fragment>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:6,color:"var(--accent2)"}}>HL-93 Envelope Along Bridge</div>
+                <p className="note" style={{marginTop:0,marginBottom:12}}>HL-93 = max(Design Truck, Tandem) × IM ({imStrength}) + Lane Load ({wLane} k/ft × DF, IM=1.0). Rear axle spacing swept 14'–30', F & R. Positive M = deck in compression.</p>
+                <div className="results-grid">
+                  <Chart data={hl93Envelope.dense} xKey="x" series={[
+                    {key:"hl93MaxM",color:"var(--green)",label:"Max M",fill:true,fillColor:"rgba(52,211,153,0.08)"},
+                    {key:"hl93MinM",color:"var(--red)",label:"Min M"},
+                  ]} title="Moment Envelope (k·ft)" xLabel="Position (ft)" yLabel="Moment (k·ft)" height={250}/>
+                  <Chart data={hl93Envelope.dense} xKey="x" series={[
+                    {key:"hl93MaxV",color:"var(--green)",label:"Max V",fill:true,fillColor:"rgba(52,211,153,0.08)"},
+                    {key:"hl93MinV",color:"var(--red)",label:"Min V"},
+                  ]} title="Shear Envelope (kips)" xLabel="Position (ft)" yLabel="Shear (kips)" height={250}/>
+                </div>
+                {/* Dense-point table (2 ft spacing) */}
+                <div style={{marginTop:20,marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>HL-93 Envelope at 2 ft Spacing</div>
+                  <div style={{overflowX:"auto",maxHeight:400,overflowY:"auto"}}><table><thead style={{position:"sticky",top:0,background:"var(--card-bg)"}}><tr>
+                    <th>Pos (ft)</th><th>Max M (k·ft)</th><th>Min M (k·ft)</th><th>Max V (kips)</th><th>Min V (kips)</th><th>Dead M</th><th>Dead V</th><th>Gov. M+</th><th>Gov. M−</th><th>Gov. V+</th><th>Gov. V−</th>
+                  </tr></thead><tbody>
+                    {hl93Envelope.dense.map((d,i)=>(
+                      <tr key={i}><td>{d.x.toFixed(1)}</td>
+                        <td className="val-pos">{fv(d.hl93MaxM)}</td><td className="val-neg">{fv(d.hl93MinM)}</td>
+                        <td className="val-pos">{fv(d.hl93MaxV)}</td><td className="val-neg">{fv(d.hl93MinV)}</td>
+                        <td>{fv(d.deadM)}</td><td>{fv(d.deadV)}</td>
+                        <td style={{fontSize:10}}>{d.govLblMaxM}</td><td style={{fontSize:10}}>{d.govLblMinM}</td>
+                        <td style={{fontSize:10}}>{d.govLblMaxV}</td><td style={{fontSize:10}}>{d.govLblMinV}</td>
+                      </tr>))}
+                  </tbody></table></div>
+                </div>
+                <div style={{marginTop:20,marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Summary — User Points</div>
+                  <div style={{overflowX:"auto"}}><table><thead><tr>
+                    <th>Location</th><th>HL-93 Max M</th><th>HL-93 Min M</th><th>HL-93 Max V</th><th>HL-93 Min V</th><th>Dead M</th><th>Dead V</th><th>Gov. M+</th><th>Gov. M−</th><th>Gov. V+</th><th>Gov. V−</th>
+                  </tr></thead><tbody>
+                    {allPoints.map((ap,i)=>{const d=hl93Envelope.user[ap.span]?.[ap.pt];if(!d)return null;return(
+                      <tr key={i}><td style={{fontWeight:500}}>{ap.label}</td>
+                        <td className="val-pos val-gov">{fv(d.hl93MaxM)}</td><td className="val-neg val-gov">{fv(d.hl93MinM)}</td>
+                        <td className="val-pos val-gov">{fv(d.hl93MaxV)}</td><td className="val-neg val-gov">{fv(d.hl93MinV)}</td>
+                        <td>{fv(d.deadM)}</td><td>{fv(d.deadV)}</td>
+                        <td style={{fontSize:10}}>{d.govLblMaxM}</td><td style={{fontSize:10}}>{d.govLblMinM}</td><td style={{fontSize:10}}>{d.govLblMaxV}</td><td style={{fontSize:10}}>{d.govLblMinV}</td>
+                      </tr>);})}
+                  </tbody></table></div>
+                </div>
+                <div style={{marginTop:20}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Detailed Breakdown by Location</div>
+                  <div className="tabs">{allPoints.map((ap,i)=><button key={i} className={`tab tab-hl93 ${hl93LocIdx===i?"active":""}`} onClick={()=>setHl93LocIdx(i)}>{ap.label}</button>)}</div>
+                  {hl93Loc&&(
+                    <React.Fragment>
+                      <div className="tabs" style={{marginBottom:12}}>
+                        <button className={`tab ${hl93SubTab==="moment"?"active":""}`} onClick={()=>setHl93SubTab("moment")}>Moment</button>
+                        <button className={`tab ${hl93SubTab==="shear"?"active":""}`} onClick={()=>setHl93SubTab("shear")}>Shear</button>
+                      </div>
+                      {hl93SubTab==="moment"&&(
+                        <React.Fragment>
+                          <div style={{overflowX:"auto"}}><table><thead><tr><th></th><th>Max M (k·ft)</th><th>Min M (k·ft)</th></tr></thead><tbody>
+                            <tr><td>HL-93 Design Truck</td><td className={cls(hl93Loc.truckMaxM)}>{fv(hl93Loc.truckMaxM)} <span style={{fontSize:9,color:'var(--text-dim)'}}>(sp={hl93Loc.truckSpMaxM}'-{hl93Loc.truckDirMaxM})</span></td><td className={cls(hl93Loc.truckMinM)}>{fv(hl93Loc.truckMinM)} <span style={{fontSize:9,color:'var(--text-dim)'}}>(sp={hl93Loc.truckSpMinM}'-{hl93Loc.truckDirMinM})</span></td></tr>
+                            <tr><td>HL-93 Tandem</td><td className={cls(hl93Loc.tandemMaxM)}>{fv(hl93Loc.tandemMaxM)}</td><td className={cls(hl93Loc.tandemMinM)}>{fv(hl93Loc.tandemMinM)}</td></tr>
+                            <tr style={{borderTop:"2px solid var(--border)"}}><td style={{fontWeight:600}}>Governing (no IM)</td>
+                              <td className="val-pos" style={{fontWeight:600}}>{fv(hl93Loc.govMaxM)} ({hl93Loc.govLblMaxM})</td>
+                              <td className="val-neg" style={{fontWeight:600}}>{fv(hl93Loc.govMinM)} ({hl93Loc.govLblMinM})</td></tr>
+                            <tr><td>× IM = {hl93Loc.imStrength}</td>
+                              <td className="val-pos">{fv(hl93Loc.govMaxM*hl93Loc.imStrength)}</td>
+                              <td className="val-neg">{fv(hl93Loc.govMinM*hl93Loc.imStrength)}</td></tr>
+                            <tr><td>Lane Load (IM=1.0)</td><td className={cls(hl93Loc.lanePosM)}>{fv(hl93Loc.lanePosM)}</td><td className={cls(hl93Loc.laneNegM)}>{fv(hl93Loc.laneNegM)}</td></tr>
+                            <tr style={{background:"rgba(77,154,255,0.06)"}}><td style={{fontWeight:700,color:"var(--accent)"}}>HL-93 Total</td>
+                              <td className="val-pos val-gov" style={{fontSize:13}}>{fv(hl93Loc.hl93MaxM)}</td>
+                              <td className="val-neg val-gov" style={{fontSize:13}}>{fv(hl93Loc.hl93MinM)}</td></tr>
+                            <tr><td style={{color:"var(--text-dim)"}}>Dead Load (unfactored)</td><td>{fv(hl93Loc.deadM)}</td><td>—</td></tr>
+                          </tbody></table></div>
+                          <div style={{marginTop:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
+                            <div className="stat-card"><div className="stat-label">HL-93 Max M</div><div className="stat-val val-pos">{fv(hl93Loc.hl93MaxM,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">HL-93 Min M</div><div className="stat-val val-neg">{fv(hl93Loc.hl93MinM,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Dead Load M</div><div className="stat-val">{fv(hl93Loc.deadM,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Governs M+</div><div className="stat-val" style={{fontSize:14,color:"var(--accent)"}}>{hl93Loc.govLblMaxM}</div></div>
+                          </div>
+                        </React.Fragment>)}
+                      {hl93SubTab==="shear"&&(
+                        <React.Fragment>
+                          <div style={{overflowX:"auto"}}><table><thead><tr><th></th><th>Max V (kips)</th><th>Min V (kips)</th></tr></thead><tbody>
+                            <tr><td>HL-93 Design Truck</td><td className={cls(hl93Loc.truckMaxV)}>{fv(hl93Loc.truckMaxV)} <span style={{fontSize:9,color:'var(--text-dim)'}}>(sp={hl93Loc.truckSpMaxV}'-{hl93Loc.truckDirMaxV})</span></td><td className={cls(hl93Loc.truckMinV)}>{fv(hl93Loc.truckMinV)} <span style={{fontSize:9,color:'var(--text-dim)'}}>(sp={hl93Loc.truckSpMinV}'-{hl93Loc.truckDirMinV})</span></td></tr>
+                            <tr><td>HL-93 Tandem</td><td className={cls(hl93Loc.tandemMaxV)}>{fv(hl93Loc.tandemMaxV)}</td><td className={cls(hl93Loc.tandemMinV)}>{fv(hl93Loc.tandemMinV)}</td></tr>
+                            <tr style={{borderTop:"2px solid var(--border)"}}><td style={{fontWeight:600}}>Governing (no IM)</td>
+                              <td className="val-pos" style={{fontWeight:600}}>{fv(hl93Loc.govMaxV)} ({hl93Loc.govLblMaxV})</td>
+                              <td className="val-neg" style={{fontWeight:600}}>{fv(hl93Loc.govMinV)} ({hl93Loc.govLblMinV})</td></tr>
+                            <tr><td>× IM = {hl93Loc.imStrength}</td>
+                              <td className="val-pos">{fv(hl93Loc.govMaxV*hl93Loc.imStrength)}</td>
+                              <td className="val-neg">{fv(hl93Loc.govMinV*hl93Loc.imStrength)}</td></tr>
+                            <tr><td>Lane Load (IM=1.0)</td><td className={cls(hl93Loc.lanePosV)}>{fv(hl93Loc.lanePosV)}</td><td className={cls(hl93Loc.laneNegV)}>{fv(hl93Loc.laneNegV)}</td></tr>
+                            <tr style={{background:"rgba(77,154,255,0.06)"}}><td style={{fontWeight:700,color:"var(--accent)"}}>HL-93 Total</td>
+                              <td className="val-pos val-gov" style={{fontSize:13}}>{fv(hl93Loc.hl93MaxV)}</td>
+                              <td className="val-neg val-gov" style={{fontSize:13}}>{fv(hl93Loc.hl93MinV)}</td></tr>
+                            <tr><td style={{color:"var(--text-dim)"}}>Dead Load (unfactored)</td><td>{fv(hl93Loc.deadV)}</td><td>—</td></tr>
+                          </tbody></table></div>
+                          <div style={{marginTop:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
+                            <div className="stat-card"><div className="stat-label">HL-93 Max V</div><div className="stat-val val-pos">{fv(hl93Loc.hl93MaxV,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">HL-93 Min V</div><div className="stat-val val-neg">{fv(hl93Loc.hl93MinV,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Dead Load V</div><div className="stat-val">{fv(hl93Loc.deadV,1)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Governs V+</div><div className="stat-val" style={{fontSize:14,color:"var(--accent)"}}>{hl93Loc.govLblMaxV}</div></div>
+                          </div>
+                        </React.Fragment>)}
+                    </React.Fragment>)}
+                </div>
+              </React.Fragment>)}
+
+            {mainTab==="il"&&unitILResults&&(
+              <React.Fragment>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:6,color:"var(--accent2)"}}>Unit Load Influence Lines</div>
+                <p className="note" style={{marginTop:0,marginBottom:10}}>True influence lines from a 1-kip unit load. Integrated for lane and dead load effects.</p>
+                <div className="point-select">{allPoints.map((p,i)=><button key={i} className={`pt-btn ${selectedPt.span===p.span&&selectedPt.pt===p.pt?"active":""}`}
+                  onClick={()=>setSelectedPt({span:p.span,pt:p.pt})}>{p.label}</button>)}</div>
+                {ilChartData&&<div className="results-grid">
+                  <Chart data={ilChartData} xKey="x" series={[{key:"moment",color:"var(--accent)",label:"M"}]} title="Moment IL (k·ft per kip)" xLabel="Unit load position (ft)" yLabel="M (k·ft/kip)" showLegend={false}/>
+                  <Chart data={ilChartData} xKey="x" series={[{key:"shear",color:"var(--highlight)",label:"V"}]} title="Shear IL (kips per kip)" xLabel="Unit load position (ft)" yLabel="V (kips/kip)" showLegend={false}/>
+                </div>}
+              </React.Fragment>)}
+
+            {mainTab==="response"&&truckResults&&(
+              <React.Fragment>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:6,color:"var(--accent2)"}}>Truck Response History</div>
+                <p className="note" style={{marginTop:0,marginBottom:10}}>M and V at the selected point as the truck traverses. Shows response for the direction governing max M at this point.</p>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:4}}>Select truck:</div>
+                  <div className="truck-chips">{truckResults.map((tr,i)=><span key={i} className={`chip ${respTruckIdx===i?"active":""}`} onClick={()=>setRespTruckIdx(i)}>{tr.name}</span>)}</div>
+                </div>
+                <div style={{marginBottom:8,fontSize:11,color:"var(--text-dim)"}}>Select point:</div>
+                <div className="point-select">{allPoints.map((p,i)=><button key={i} className={`pt-btn ${selectedPt.span===p.span&&selectedPt.pt===p.pt?"active":""}`}
+                  onClick={()=>setSelectedPt({span:p.span,pt:p.pt})}>{p.label}</button>)}</div>
+                {respChartData&&respChartData.data&&(
+                  <React.Fragment>
+                    <p style={{fontSize:12,marginBottom:10,color:"var(--text)"}}>
+                      <strong>{respChartData.truckName}</strong>
+                      {respChartData.dirLabel&&<span> — Direction: <strong>{respChartData.dirLabel==="F"?"Forward":"Reverse"} ({respChartData.dirLabel})</strong></span>}
+                      {respChartData.spacingLabel&&<span> — Rear axle spacing: <strong>{respChartData.spacingLabel}'</strong></span>}
+                    </p>
+                    <div className="results-grid">
+                      <Chart data={respChartData.data} xKey="x" series={[{key:"moment",color:"var(--accent)"}]}
+                        title={`Moment (k·ft)${respChartData.dirLabel?` [${respChartData.dirLabel}]`:""}${respChartData.spacingLabel?` sp=${respChartData.spacingLabel}'`:""}`}
+                        xLabel="Front axle position (ft)" yLabel="Moment (k·ft)" showLegend={false}/>
+                      <Chart data={respChartData.data} xKey="x" series={[{key:"shear",color:"var(--highlight)"}]}
+                        title={`Shear (kips)${respChartData.dirLabel?` [${respChartData.dirLabel}]`:""}${respChartData.spacingLabel?` sp=${respChartData.spacingLabel}'`:""}`}
+                        xLabel="Front axle position (ft)" yLabel="Shear (kips)" showLegend={false}/>
+                    </div>
+                  </React.Fragment>
+                )}
+              </React.Fragment>)}
+
+            {mainTab==="envelope"&&truckResults&&truckResults.map((tr,ti)=>{
+              const showDir=tr.isHL93Sweep||tr.hasFwdRev;
+              const showSp=tr.isHL93Sweep;
+              const isFat=tr.fatigue;
+              return(
+              <div key={ti} style={{marginBottom:20}}>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:10,color:isFat?"var(--purple)":"var(--accent2)"}}>{tr.name}{tr.isHL93Sweep?" (spacing swept 14'–30', F & R)":showDir?" (F & R)":""}{isFat?` — Fatigue: Moment Only × IM=${imFatigue}, No Lane Load`:""}</div>
+                {isFat?(
+                  <div style={{overflowX:"auto"}}><table><thead><tr><th>Location</th><th>Max M × IM (k·ft)</th>{showDir&&<th>Dir</th>}<th>Min M × IM (k·ft)</th>{showDir&&<th>Dir</th>}</tr></thead>
+                    <tbody>{allPoints.map((p,pi)=>{const e=tr.envelope[p.span]?.[p.pt];if(!e)return null;return(
+                      <tr key={pi}><td style={{fontWeight:500}}>{p.label}</td>
+                        <td className="val-pos">{fv(e.mptmax*imFatigue)}</td>{showDir&&<td style={{fontSize:10}}>{e.dirMaxM}</td>}
+                        <td className="val-neg">{fv(e.mptmin*imFatigue)}</td>{showDir&&<td style={{fontSize:10}}>{e.dirMinM}</td>}
+                      </tr>);})}</tbody></table></div>
+                ):(
+                <div style={{overflowX:"auto"}}><table><thead><tr><th>Location</th><th>Max M</th>{showSp&&<th>Sp.</th>}{showDir&&<th>Dir</th>}<th>V@MaxM</th><th>Min M</th>{showSp&&<th>Sp.</th>}{showDir&&<th>Dir</th>}<th>V@MinM</th><th>Max V</th>{showSp&&<th>Sp.</th>}{showDir&&<th>Dir</th>}<th>M@MaxV</th><th>Min V</th>{showSp&&<th>Sp.</th>}{showDir&&<th>Dir</th>}<th>M@MinV</th></tr></thead>
+                  <tbody>{allPoints.map((p,pi)=>{const e=tr.envelope[p.span]?.[p.pt];if(!e)return null;return(
+                    <tr key={pi}><td style={{fontWeight:500}}>{p.label}</td>
+                      <td className="val-pos">{fv(e.mptmax)}</td>{showSp&&<td style={{fontSize:10}}>{e.spMaxM}'</td>}{showDir&&<td style={{fontSize:10}}>{e.dirMaxM}</td>}<td>{fv(e.vmptmax)}</td>
+                      <td className="val-neg">{fv(e.mptmin)}</td>{showSp&&<td style={{fontSize:10}}>{e.spMinM}'</td>}{showDir&&<td style={{fontSize:10}}>{e.dirMinM}</td>}<td>{fv(e.vmptmin)}</td>
+                      <td className="val-pos">{fv(e.vptmax)}</td>{showSp&&<td style={{fontSize:10}}>{e.spMaxV}'</td>}{showDir&&<td style={{fontSize:10}}>{e.dirMaxV}</td>}<td>{fv(e.mvptmax)}</td>
+                      <td className="val-neg">{fv(e.vptmin)}</td>{showSp&&<td style={{fontSize:10}}>{e.spMinV}'</td>}{showDir&&<td style={{fontSize:10}}>{e.dirMinV}</td>}<td>{fv(e.mvptmin)}</td>
+                    </tr>);})}</tbody></table></div>
+                )}
+              </div>);})}
+
+            {mainTab==="distributed"&&laneData&&(
+              <React.Fragment>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:10,color:"var(--accent2)"}}>Lane &amp; Dead Load Effects</div>
+                <div style={{overflowX:"auto"}}><table><thead><tr><th>Location</th><th>Dead M</th><th>Dead V</th><th>Lane +M</th><th>Lane −M</th><th>Lane +V</th><th>Lane −V</th></tr></thead>
+                  <tbody>{allPoints.map((ap,i)=>{const d=laneData[ap.span]?.[ap.pt];if(!d)return null;return(
+                    <tr key={i}><td style={{fontWeight:500}}>{ap.label}</td>
+                      <td>{fv(d.deadM)}</td><td>{fv(d.deadV)}</td>
+                      <td className="val-pos">{fv(d.lanePosM)}</td><td className="val-neg">{fv(d.laneNegM)}</td>
+                      <td className="val-pos">{fv(d.lanePosV)}</td><td className="val-neg">{fv(d.laneNegV)}</td>
+                    </tr>);})}</tbody></table></div>
+                <p className="note">Lane={wLane} k/ft × DF(M:{dfM}, V:{dfV}). Dead={wDead} k/ft. Unit-load IL trapezoidal integration.</p>
+              </React.Fragment>)}
+          </div>
+        </React.Fragment>)}
+      <div style={{marginTop:32,paddingTop:16,borderTop:"1px solid var(--border)",fontSize:11,color:"var(--text-dim)",fontFamily:"'DM Mono',monospace",lineHeight:1.6}}>
+        <div style={{marginBottom:6}}>Developed by Christopher Higgins, PhD, PE · School of Civil and Construction Engineering · Oregon State University, 2025</div>
+        <div style={{marginBottom:6}}>Based on original Fortran analysis program by C. Higgins (2004)</div>
+        <div style={{fontStyle:"italic"}}>Disclaimer: This software is provided as-is for educational and reference purposes. Engineers should independently verify all results before using them for design. The author assumes no liability for the use of this software in engineering practice.</div>
+      </div>
+    </div>);
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
