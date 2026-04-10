@@ -6,7 +6,7 @@ A browser-based structural analysis tool for simply-supported beams with optiona
 
 Developed by Christopher Higgins, PhD, PE  
 School of Civil and Construction Engineering  
-Oregon State University, 2025
+Oregon State University, 2026
 
 Based on original Fortran analysis program by C. Higgins (2004)
 
@@ -26,7 +26,7 @@ This program moves truck axle loads across a beam and computes shear and moment 
 
 ## How to Use It
 
-1. **Open `beam-analysis.html` in any modern web browser** (Chrome, Edge, Firefox, Safari). No installation required.
+1. **Open `beam-analysis_2026.html` in any modern web browser** (Chrome, Edge, Firefox, Safari). No installation required.
 2. **Define the beam geometry**: enter the main span length and optional left/right cantilever lengths in feet.
 3. **Set points of interest**: enter comma-separated distances from the left end of each segment where you want results (e.g., `15, 30, 45` for quarter points on a 60' span).
 4. **Select truck loads**: click the truck chips to toggle them on/off. The HL-93 Design Truck and Tandem are always used for the HL-93 design envelope regardless of selection. Additional trucks appear in the Truck Envelopes tab.
